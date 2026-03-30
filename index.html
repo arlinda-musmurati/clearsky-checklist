@@ -355,6 +355,22 @@
   .sum-label { color: var(--gray-400); font-size: 12px; }
   .sum-num   { color: var(--white); font-weight: 600; }
 
+  .btn-pdf {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+    color: var(--white);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 10px 22px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-pdf:hover { border-color: white; background: rgba(255,255,255,0.1); }
+
   .btn-submit {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
@@ -524,10 +540,24 @@
 
   @media (max-width: 520px) {
     .sig-grid { grid-template-columns: 1fr; gap: 24px; }
-  }
     .property-inner { grid-template-columns: 1fr; }
     .summary-counts { gap: 12px; }
     .modal { padding: 20px; }
+  }
+
+  @media print {
+    header { position: relative; box-shadow: none; }
+    .summary-bar { display: none !important; }
+    .modal-overlay { display: none !important; }
+    .item-actions { display: none !important; }
+    .note-toggle { display: none !important; }
+    .item-note-wrap { display: block !important; }
+    .item-note-wrap textarea { border: none; padding: 0; min-height: 0; font-size: 12px; color: #555; resize: none; }
+    .section { break-inside: avoid; box-shadow: none; }
+    .signature-section { margin-bottom: 20px; }
+    body { background: white; }
+    main { padding-bottom: 20px; }
+    .progress-wrap { display: none !important; }
   }
 </style>
 </head>
@@ -556,7 +586,11 @@
   <div class="property-inner">
     <div class="prop-field">
       <label>Property Address</label>
-      <div class="static-val">1 City Point, Apt 57H, Brooklyn NY</div>
+      <input type="text" id="propAddress" placeholder="Enter address..."/>
+    </div>
+    <div class="prop-field">
+      <label>Unit Number</label>
+      <input type="text" id="propUnit" placeholder="e.g. 57H"/>
     </div>
     <div class="prop-field">
       <label>Inspector Name</label>
@@ -565,10 +599,6 @@
     <div class="prop-field">
       <label>Inspection Date</label>
       <input type="date" id="inspDate"/>
-    </div>
-    <div class="prop-field">
-      <label>Unit</label>
-      <div class="static-val">57H</div>
     </div>
   </div>
 </div>
@@ -622,6 +652,7 @@
       <span class="sum-label">Pending</span>
     </div>
   </div>
+  <button class="btn-pdf" onclick="window.print()">Save as PDF</button>
   <button class="btn-submit" onclick="showReport()">View Report →</button>
 </div>
 
@@ -803,6 +834,8 @@ function updateAll() {
 
 function showReport() {
   const inspector = document.getElementById('inspector').value || 'Not specified';
+  const address   = document.getElementById('propAddress').value || 'Not specified';
+  const unit      = document.getElementById('propUnit').value || 'Not specified';
   const date = document.getElementById('inspDate').value
     ? new Date(document.getElementById('inspDate').value + 'T12:00:00').toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})
     : 'Not specified';
@@ -810,7 +843,7 @@ function showReport() {
   let html = `
     <div class="report-section">
       <div class="report-section-title">Inspection Details</div>
-      <div class="report-item"><span class="report-status">📍</span><div><div class="report-item-label">1 City Point, Apt 57H, Brooklyn NY</div><div class="report-item-note">Inspector: ${inspector} &nbsp;·&nbsp; Date: ${date}</div></div></div>
+      <div class="report-item"><span class="report-status">📍</span><div><div class="report-item-label">${address}, Unit ${unit}</div><div class="report-item-note">Inspector: ${inspector} &nbsp;·&nbsp; Date: ${date}</div></div></div>
     </div>
   `;
 
