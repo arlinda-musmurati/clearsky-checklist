@@ -546,7 +546,15 @@
   }
 
   @media print {
-    header { position: relative; box-shadow: none; }
+    @page { margin: 1cm; }
+    header { position: relative; box-shadow: none; background: #0a0a0a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .header-inner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo-clear { color: #ffffff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo-sky { color: #0a0a0a !important; background: #ffffff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo-sub { color: #999999 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section-header { background: #2b2b2b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .item.pass { background: #f0f7f3 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .item.flag { background: #fdf2f2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .summary-bar { display: none !important; }
     .modal-overlay { display: none !important; }
     .item-actions { display: none !important; }
@@ -558,6 +566,7 @@
     body { background: white; }
     main { padding-bottom: 20px; }
     .progress-wrap { display: none !important; }
+    a[href]:after { content: none !important; }
   }
 </style>
 </head>
