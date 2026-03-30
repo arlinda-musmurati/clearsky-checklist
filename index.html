@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>ClearSky — Walkthrough Checklist</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
   :root {
     --black: #0a0a0a;
@@ -52,36 +52,45 @@
   }
   .logo {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
   }
   .logo-clear {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 700;
-    font-size: 22px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    font-size: 21px;
     color: var(--white);
     letter-spacing: 2px;
     text-transform: uppercase;
+    display: inline-block;
+    transform: scaleY(1.15);
+    transform-origin: center;
   }
   .logo-sky {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 700;
-    font-size: 22px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    font-size: 21px;
     color: var(--black);
     background: var(--white);
     letter-spacing: 2px;
     text-transform: uppercase;
-    padding: 1px 6px;
-    margin-left: 1px;
+    padding: 2px 5px 2px 5px;
+    margin-left: 2px;
+    display: inline-block;
+    transform: scaleY(1.15);
+    transform-origin: center;
   }
   .logo-sub {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 8px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 300;
+    font-size: 6.5px;
     letter-spacing: 3px;
-    color: var(--gray-400);
+    color: rgba(255,255,255,0.55);
     text-transform: uppercase;
     display: block;
-    margin-top: 3px;
   }
   .logo-wrap { display: flex; flex-direction: column; }
 
@@ -195,7 +204,7 @@
   .section-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.5px;
   }
   .section-count {
@@ -353,12 +362,12 @@
   .sum-dot.flag { background: #e57373; }
   .sum-dot.empty { background: var(--gray-600); }
   .sum-label { color: var(--gray-400); font-size: 12px; }
-  .sum-num   { color: var(--white); font-weight: 600; }
+  .sum-num   { color: var(--white); font-weight: 700; }
 
   .btn-pdf {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     background: transparent;
     color: var(--white);
     border: 1.5px solid rgba(255,255,255,0.3);
@@ -374,7 +383,7 @@
   .btn-submit {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     background: var(--white);
     color: var(--black);
     border: none;
@@ -441,7 +450,7 @@
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--gray-400);
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 8px;
     padding-bottom: 6px;
     border-bottom: 1px solid var(--gray-100);
@@ -470,7 +479,7 @@
     width: 100%;
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     background: var(--black);
     color: var(--white);
     border: none;
@@ -497,7 +506,7 @@
   .sig-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--gray-800);
     margin-bottom: 24px;
     padding-bottom: 12px;
@@ -577,9 +586,9 @@
   <div class="header-inner">
     <div class="logo-wrap">
       <div class="logo">
-        <span class="logo-clear">Clear</span><span class="logo-sky">Sky</span>
+        <span class="logo-clear">CLEAR</span><span class="logo-sky">SKY</span>
       </div>
-      <span class="logo-sub">Investment Group</span>
+      <span class="logo-sub">I N V E S T M E N T &nbsp; G R O U P</span>
     </div>
     <div class="progress-wrap">
       <span class="progress-label" id="progressLabel">0 / 22 complete</span>
