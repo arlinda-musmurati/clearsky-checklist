@@ -466,7 +466,65 @@
   }
   .btn-print:hover { opacity: 0.8; }
 
+  /* ── Signature Section ── */
+  .signature-section {
+    max-width: 760px;
+    margin: 0 auto 100px;
+    padding: 0 16px;
+  }
+  .signature-inner {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 28px 28px 32px;
+  }
+  .sig-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .sig-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 32px;
+  }
+  .sig-field label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .sig-field input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--gray-800);
+    padding: 4px 0;
+    outline: none;
+    margin-bottom: 32px;
+  }
+  .sig-line {
+    border-bottom: 1.5px solid var(--gray-800);
+    margin-bottom: 8px;
+  }
+  .sig-label {
+    font-size: 10px;
+    color: var(--gray-400);
+    letter-spacing: 0.5px;
+  }
+
   @media (max-width: 520px) {
+    .sig-grid { grid-template-columns: 1fr; gap: 24px; }
+  }
     .property-inner { grid-template-columns: 1fr; }
     .summary-counts { gap: 12px; }
     .modal { padding: 20px; }
@@ -517,6 +575,33 @@
 
 <!-- Checklist -->
 <main id="checklist"></main>
+
+<!-- Signature Section -->
+<div class="signature-section">
+  <div class="signature-inner">
+    <div class="sig-title">Signatures</div>
+    <div class="sig-grid">
+      <div class="sig-field">
+        <label>Inspector Name</label>
+        <input type="text" placeholder="Full name..."/>
+        <div class="sig-line"></div>
+        <span class="sig-label">Inspector Signature</span>
+      </div>
+      <div class="sig-field">
+        <label>Date</label>
+        <input type="date"/>
+        <div class="sig-line"></div>
+        <span class="sig-label">Date</span>
+      </div>
+      <div class="sig-field">
+        <label>ClearSky Representative</label>
+        <input type="text" placeholder="Full name..."/>
+        <div class="sig-line"></div>
+        <span class="sig-label">ClearSky Representative Signature</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Summary Bar -->
 <div class="summary-bar">
