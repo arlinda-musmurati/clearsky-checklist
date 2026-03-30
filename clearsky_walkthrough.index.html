@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ClearSky — Walkthrough Checklist · 1 City Point 57H</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #ffffff;
+    --off-white: #f7f6f4;
+    --gray-100: #f0efed;
+    --gray-200: #e2e0dd;
+    --gray-400: #9e9b96;
+    --gray-600: #5a5753;
+    --gray-800: #2e2c2a;
+    --pass: #1a6b3c;
+    --pass-bg: #f0f7f3;
+    --pass-border: #a8d5bc;
+    --flag: #b83232;
+    --flag-bg: #fdf2f2;
+    --flag-border: #e8b0b0;
+    --accent: #1a1a1a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off-white);
+    color: var(--gray-800);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--black);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+  }
+  .header-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+  }
+  .logo-clear {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--white);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .logo-sky {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--black);
+    background: var(--white);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    margin-left: 1px;
+  }
+  .logo-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    display: block;
+    margin-top: 3px;
+  }
+  .logo-wrap { display: flex; flex-direction: column; }
+
+  .progress-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .progress-label {
+    font-size: 11px;
+    color: var(--gray-400);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .progress-bar-outer {
+    width: 140px;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: var(--white);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* ── Property Card ── */
+  .property-card {
+    max-width: 760px;
+    margin: 28px auto 0;
+    padding: 0 16px;
+  }
+  .property-inner {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 32px;
+  }
+  .prop-field label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .prop-field input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--gray-200);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--gray-800);
+    padding: 4px 0;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .prop-field input:focus { border-color: var(--black); }
+  .prop-field .static-val {
+    font-size: 14px;
+    color: var(--gray-800);
+    font-weight: 500;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  /* ── Main ── */
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+  }
+
+  /* ── Section ── */
+  .section {
+    margin-bottom: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+    background: var(--white);
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .section:nth-child(1) { animation-delay: 0.05s; }
+  .section:nth-child(2) { animation-delay: 0.10s; }
+  .section:nth-child(3) { animation-delay: 0.15s; }
+  .section:nth-child(4) { animation-delay: 0.20s; }
+  .section:nth-child(5) { animation-delay: 0.25s; }
+  .section:nth-child(6) { animation-delay: 0.30s; }
+
+  .section-header {
+    background: var(--black);
+    color: var(--white);
+    padding: 13px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .section-count {
+    font-size: 11px;
+    color: var(--gray-400);
+    letter-spacing: 1px;
+  }
+
+  /* ── Item ── */
+  .item {
+    border-bottom: 1px solid var(--gray-100);
+    transition: background 0.15s;
+  }
+  .item:last-child { border-bottom: none; }
+  .item-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .item-top:hover { background: var(--gray-100); }
+
+  /* Status toggle */
+  .status-btn {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1.5px solid var(--gray-200);
+    background: var(--white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    margin-top: 1px;
+    font-size: 14px;
+  }
+  .item.pass .status-btn {
+    background: var(--pass);
+    border-color: var(--pass);
+    color: white;
+  }
+  .item.flag .status-btn {
+    background: var(--flag);
+    border-color: var(--flag);
+    color: white;
+  }
+  .item.pass { background: var(--pass-bg); }
+  .item.flag { background: var(--flag-bg); }
+
+  .item-content { flex: 1; }
+  .item-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-800);
+    line-height: 1.4;
+  }
+  .item.pass .item-label { color: var(--pass); }
+  .item.flag .item-label { color: var(--flag); }
+  .item-desc {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  .item-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .btn-pass, .btn-flag, .btn-clear {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.15s;
+  }
+  .btn-pass  { color: var(--pass); border-color: var(--pass-border); background: var(--pass-bg); }
+  .btn-flag  { color: var(--flag); border-color: var(--flag-border); background: var(--flag-bg); }
+  .btn-clear { color: var(--gray-400); border-color: var(--gray-200); background: var(--white); }
+  .btn-pass:hover  { background: var(--pass); color: white; }
+  .btn-flag:hover  { background: var(--flag); color: white; }
+  .btn-clear:hover { background: var(--gray-200); }
+
+  .item-note-wrap {
+    padding: 0 20px 14px 60px;
+    display: none;
+  }
+  .item-note-wrap.show { display: block; }
+  .item-note-wrap textarea {
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--gray-800);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 10px 12px;
+    resize: none;
+    outline: none;
+    min-height: 70px;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+  .item-note-wrap textarea:focus { border-color: var(--black); }
+  .item-note-wrap textarea::placeholder { color: var(--gray-400); }
+
+  /* toggle note link */
+  .note-toggle {
+    font-size: 11px;
+    color: var(--gray-400);
+    cursor: pointer;
+    margin-top: 6px;
+    display: inline-block;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .note-toggle:hover { color: var(--black); }
+
+  /* ── Summary Bar ── */
+  .summary-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--black);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    z-index: 200;
+  }
+  .summary-counts {
+    display: flex;
+    gap: 20px;
+  }
+  .sum-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .sum-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .sum-dot.pass { background: #4caf7d; }
+  .sum-dot.flag { background: #e57373; }
+  .sum-dot.empty { background: var(--gray-600); }
+  .sum-label { color: var(--gray-400); font-size: 12px; }
+  .sum-num   { color: var(--white); font-weight: 600; }
+
+  .btn-submit {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--white);
+    color: var(--black);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .btn-submit:hover { opacity: 0.85; }
+
+  /* ── Report Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: 16px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 32px;
+    animation: popIn 0.25s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.94); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--black);
+  }
+  .modal-close {
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--gray-400);
+    background: none;
+    border: none;
+    line-height: 1;
+    padding: 0 4px;
+  }
+  .modal-close:hover { color: var(--black); }
+  .report-section { margin-bottom: 20px; }
+  .report-section-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .report-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .report-item:last-child { border-bottom: none; }
+  .report-status {
+    font-size: 13px;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+    margin-top: 1px;
+  }
+  .report-item-label { font-weight: 500; color: var(--gray-800); }
+  .report-item-note  { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+  .report-empty { color: var(--gray-400); font-size: 13px; font-style: italic; padding: 6px 0; }
+
+  .btn-print {
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--black);
+    color: var(--white);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: opacity 0.2s;
+  }
+  .btn-print:hover { opacity: 0.8; }
+
+  @media (max-width: 520px) {
+    .property-inner { grid-template-columns: 1fr; }
+    .summary-counts { gap: 12px; }
+    .modal { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="header-inner">
+    <div class="logo-wrap">
+      <div class="logo">
+        <span class="logo-clear">Clear</span><span class="logo-sky">Sky</span>
+      </div>
+      <span class="logo-sub">Investment Group</span>
+    </div>
+    <div class="progress-wrap">
+      <span class="progress-label" id="progressLabel">0 / 22 complete</span>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progressBar"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Property Card -->
+<div class="property-card">
+  <div class="property-inner">
+    <div class="prop-field">
+      <label>Property Address</label>
+      <div class="static-val">1 City Point, Apt 57H, Brooklyn NY</div>
+    </div>
+    <div class="prop-field">
+      <label>Inspector Name</label>
+      <input type="text" id="inspector" placeholder="Enter name..."/>
+    </div>
+    <div class="prop-field">
+      <label>Inspection Date</label>
+      <input type="date" id="inspDate"/>
+    </div>
+    <div class="prop-field">
+      <label>Unit</label>
+      <div class="static-val">57H</div>
+    </div>
+  </div>
+</div>
+
+<!-- Checklist -->
+<main id="checklist"></main>
+
+<!-- Summary Bar -->
+<div class="summary-bar">
+  <div class="summary-counts">
+    <div class="sum-item">
+      <div class="sum-dot pass"></div>
+      <span class="sum-num" id="countPass">0</span>
+      <span class="sum-label">Pass</span>
+    </div>
+    <div class="sum-item">
+      <div class="sum-dot flag"></div>
+      <span class="sum-num" id="countFlag">0</span>
+      <span class="sum-label">Issues</span>
+    </div>
+    <div class="sum-item">
+      <div class="sum-dot empty"></div>
+      <span class="sum-num" id="countEmpty">22</span>
+      <span class="sum-label">Pending</span>
+    </div>
+  </div>
+  <button class="btn-submit" onclick="showReport()">View Report →</button>
+</div>
+
+<!-- Report Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Walkthrough Report</div>
+      <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    </div>
+    <div id="reportContent"></div>
+    <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</div>
+
+<script>
+const SECTIONS = [
+  {
+    title: "1. Kitchen & Appliances",
+    items: [
+      { id:"fridge",   label:"Refrigerator & Freezer",     desc:"Cooling properly, interior light on, no persistent odors" },
+      { id:"stove",    label:"Stove & Oven",                desc:"All burners ignite/heat; oven element and interior light functional" },
+      { id:"dishwash", label:"Dishwasher",                  desc:"Racks undamaged, no standing water at bottom" },
+      { id:"micro",    label:"Microwave",                   desc:"Turntable rotates, interior light functions" },
+      { id:"cabinets", label:"Kitchen Cabinets",            desc:"Open and close smoothly, no damage" },
+      { id:"ksink",    label:"Kitchen Sink & Drain",        desc:"Hot water present, drain flows freely and unobstructed" },
+    ]
+  },
+  {
+    title: "2. Plumbing & Moisture",
+    items: [
+      { id:"wpressure",label:"Water Pressure",              desc:"Run shower and sink together; check for significant drop" },
+      { id:"drainage", label:"Drainage – All Areas",        desc:"Fill sinks and tub; confirm fast, unobstructed drain flow" },
+      { id:"leaks",    label:"Leaks & Moisture",            desc:"Check under-sink cabinets for dampness, stains, or mold" },
+      { id:"faucets",  label:"Faucets – Hot Water",         desc:"Both bathrooms and kitchen have hot water" },
+      { id:"shower",   label:"Shower",                      desc:"Switch between tub and shower modes; both functional" },
+      { id:"toilets",  label:"Toilets",                     desc:"Flush every toilet; no continuous running, no leaks at base" },
+    ]
+  },
+  {
+    title: "3. Electrical & HVAC",
+    items: [
+      { id:"outlets",  label:"Outlets",                     desc:"Test every outlet in each room with a phone charger" },
+      { id:"switches", label:"Light Switches",              desc:"Toggle all switches; listen for buzzing or flickering" },
+      { id:"bulbs",    label:"Lights / Bulbs",              desc:"All lights working, no bulbs out" },
+      { id:"hvac",     label:"Heating & Cooling (HVAC/AC)", desc:"Run both AC and Heat cycles; confirm strong airflow" },
+    ]
+  },
+  {
+    title: "4. Windows & Doors",
+    items: [
+      { id:"windows",  label:"Windows",                     desc:"Open/close every window; locks secure, no drafts, no water damage" },
+      { id:"doors",    label:"Doors",                       desc:"All doors swing freely, no floor rubbing, locks functional" },
+    ]
+  },
+  {
+    title: "5. Walls, Floors & General Condition",
+    items: [
+      { id:"walls",    label:"Walls – Holes & Damage",      desc:"Inspect for holes larger than a nail; note unpatched areas" },
+      { id:"caulk",   label:"Caulking",                    desc:"Not deteriorating; intact around tubs, sinks, and windows" },
+      { id:"floors",   label:"Floor Condition",             desc:"No water damage, no loose floorboards, no deep scratches" },
+    ]
+  },
+  {
+    title: "6. Laundry & Additional Systems",
+    items: [
+      { id:"washer",   label:"Washing Machine",             desc:"Check condition and confirm it is operational" },
+      { id:"dryer",    label:"Dryer",                       desc:"Check condition and confirm it is operational" },
+    ]
+  }
+];
+
+const TOTAL = SECTIONS.reduce((a,s) => a + s.items.length, 0);
+const state = {}; // id -> { status: 'pass'|'flag'|'empty', note: '' }
+SECTIONS.forEach(s => s.items.forEach(it => {
+  state[it.id] = { status: 'empty', note: '' };
+}));
+
+function renderChecklist() {
+  const main = document.getElementById('checklist');
+  main.innerHTML = '';
+  SECTIONS.forEach((sec, si) => {
+    const div = document.createElement('div');
+    div.className = 'section';
+    div.style.animationDelay = (si * 0.06) + 's';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.innerHTML = `<span class="section-title">${sec.title}</span><span class="section-count" id="sc-${si}"></span>`;
+    div.appendChild(hdr);
+
+    sec.items.forEach(it => {
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.id = 'item-' + it.id;
+
+      item.innerHTML = `
+        <div class="item-top" onclick="cycleStatus('${it.id}')">
+          <div class="status-btn" id="btn-${it.id}">
+            <span id="icon-${it.id}"></span>
+          </div>
+          <div class="item-content">
+            <div class="item-label">${it.label}</div>
+            <div class="item-desc">${it.desc}</div>
+            <div class="item-actions" onclick="event.stopPropagation()">
+              <button class="btn-pass"  onclick="setStatus('${it.id}','pass')">✓ Pass</button>
+              <button class="btn-flag"  onclick="setStatus('${it.id}','flag')">! Issue</button>
+              <button class="btn-clear" onclick="setStatus('${it.id}','empty')">Clear</button>
+            </div>
+            <span class="note-toggle" id="nt-${it.id}" onclick="event.stopPropagation(); toggleNote('${it.id}')">+ Add note</span>
+          </div>
+        </div>
+        <div class="item-note-wrap" id="note-wrap-${it.id}">
+          <textarea id="note-${it.id}" placeholder="Add a note or description…" oninput="saveNote('${it.id}', this.value)"></textarea>
+        </div>
+      `;
+      div.appendChild(item);
+    });
+
+    main.appendChild(div);
+  });
+  updateAll();
+}
+
+function cycleStatus(id) {
+  const cur = state[id].status;
+  const next = cur === 'empty' ? 'pass' : cur === 'pass' ? 'flag' : 'empty';
+  setStatus(id, next);
+}
+
+function setStatus(id, status) {
+  state[id].status = status;
+  const item = document.getElementById('item-' + id);
+  item.className = 'item ' + (status !== 'empty' ? status : '');
+  const icon = document.getElementById('icon-' + id);
+  icon.textContent = status === 'pass' ? '✓' : status === 'flag' ? '!' : '';
+  // auto-show note wrap on flag
+  if (status === 'flag') {
+    document.getElementById('note-wrap-' + id).classList.add('show');
+    document.getElementById('note-' + id).focus();
+  }
+  updateAll();
+}
+
+function toggleNote(id) {
+  const wrap = document.getElementById('note-wrap-' + id);
+  const tog  = document.getElementById('nt-' + id);
+  const showing = wrap.classList.toggle('show');
+  tog.textContent = showing ? '− Hide note' : '+ Add note';
+  if (showing) document.getElementById('note-' + id).focus();
+}
+
+function saveNote(id, val) {
+  state[id].note = val;
+}
+
+function updateAll() {
+  let pass = 0, flag = 0;
+  SECTIONS.forEach((sec, si) => {
+    let sp = 0, sf = 0;
+    sec.items.forEach(it => {
+      if (state[it.id].status === 'pass') { pass++; sp++; }
+      if (state[it.id].status === 'flag') { flag++; sf++; }
+    });
+    const sc = document.getElementById('sc-' + si);
+    if (sc) {
+      const done = sp + sf;
+      sc.textContent = done > 0 ? `${done}/${sec.items.length}` : '';
+    }
+  });
+  const empty = TOTAL - pass - flag;
+  document.getElementById('countPass').textContent  = pass;
+  document.getElementById('countFlag').textContent  = flag;
+  document.getElementById('countEmpty').textContent = empty;
+  const pct = Math.round(((pass + flag) / TOTAL) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${pass + flag} / ${TOTAL} complete`;
+}
+
+function showReport() {
+  const inspector = document.getElementById('inspector').value || 'Not specified';
+  const date = document.getElementById('inspDate').value
+    ? new Date(document.getElementById('inspDate').value + 'T12:00:00').toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})
+    : 'Not specified';
+
+  let html = `
+    <div class="report-section">
+      <div class="report-section-title">Inspection Details</div>
+      <div class="report-item"><span class="report-status">📍</span><div><div class="report-item-label">1 City Point, Apt 57H, Brooklyn NY</div><div class="report-item-note">Inspector: ${inspector} &nbsp;·&nbsp; Date: ${date}</div></div></div>
+    </div>
+  `;
+
+  SECTIONS.forEach(sec => {
+    const flagged = sec.items.filter(it => state[it.id].status === 'flag');
+    const passed  = sec.items.filter(it => state[it.id].status === 'pass');
+    const pending = sec.items.filter(it => state[it.id].status === 'empty');
+
+    html += `<div class="report-section"><div class="report-section-title">${sec.title}</div>`;
+
+    if (flagged.length) {
+      flagged.forEach(it => {
+        html += `<div class="report-item">
+          <span class="report-status" style="color:#b83232">!</span>
+          <div>
+            <div class="report-item-label" style="color:#b83232">${it.label}</div>
+            ${state[it.id].note ? `<div class="report-item-note">${state[it.id].note}</div>` : ''}
+          </div>
+        </div>`;
+      });
+    }
+    passed.forEach(it => {
+      html += `<div class="report-item">
+        <span class="report-status" style="color:#1a6b3c">✓</span>
+        <div>
+          <div class="report-item-label">${it.label}</div>
+          ${state[it.id].note ? `<div class="report-item-note">${state[it.id].note}</div>` : ''}
+        </div>
+      </div>`;
+    });
+    pending.forEach(it => {
+      html += `<div class="report-item">
+        <span class="report-status" style="color:#9e9b96">□</span>
+        <div><div class="report-item-label" style="color:#9e9b96">${it.label}</div></div>
+      </div>`;
+    });
+
+    if (!flagged.length && !passed.length && !pending.length) {
+      html += `<div class="report-empty">No items recorded.</div>`;
+    }
+    html += `</div>`;
+  });
+
+  document.getElementById('reportContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModalBtn();
+}
+function closeModalBtn() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+renderChecklist();
+</script>
+</body>
+</html>
