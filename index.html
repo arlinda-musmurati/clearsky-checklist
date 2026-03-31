@@ -420,15 +420,17 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.92);
     z-index: 600;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+    gap: 16px;
   }
   .photo-overlay.show { display: flex; }
   .photo-overlay img {
     max-width: 90%;
-    max-height: 85vh;
+    max-height: 78vh;
     border-radius: 8px;
     object-fit: contain;
   }
@@ -442,11 +444,26 @@
     background: none;
     border: none;
   }
+  .photo-download-btn {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--black);
+    background: var(--white);
+    border-radius: 8px;
+    padding: 10px 24px;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    transition: opacity 0.2s;
+  }
+  .photo-download-btn:hover { opacity: 0.85; }
   @media print {
-    .photo-grid { display: flex !important; flex-wrap: wrap; gap: 6px; }
-    .photo-thumb { width: 70px; height: 70px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .photo-grid { display: flex !important; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .photo-thumb { width: 180px !important; height: 180px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .photo-del { display: none !important; }
     .note-actions { display: none !important; }
+    .photo-overlay { display: none !important; }
   }
 
   .btn-pdf {
@@ -559,6 +576,46 @@
   .report-item-label { font-weight: 500; color: var(--gray-800); }
   .report-item-note  { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
   .report-empty { color: var(--gray-400); font-size: 13px; font-style: italic; padding: 6px 0; }
+
+  .report-photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .report-photo-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .report-photo {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .report-photo:hover { opacity: 0.85; }
+  .report-photo-dl {
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--gray-600);
+    text-decoration: none;
+    border: 1px solid var(--gray-200);
+    border-radius: 20px;
+    padding: 3px 10px;
+    transition: all 0.15s;
+  }
+  .report-photo-dl:hover { background: var(--black); color: white; border-color: var(--black); }
+
+  @media print {
+    .report-photo { width: 220px !important; height: 220px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-photo-dl { display: none !important; }
+    .report-photo:hover { opacity: 1; }
+  }
 
   .btn-print {
     width: 100%;
@@ -760,9 +817,10 @@
 </div>
 
 <!-- Photo Viewer -->
-<div class="photo-overlay" id="photoOverlay" onclick="this.classList.remove('show')">
+<div class="photo-overlay" id="photoOverlay" onclick="handleOverlayClick(event)">
   <button class="photo-overlay-close" onclick="document.getElementById('photoOverlay').classList.remove('show')">×</button>
   <img id="photoFull" src=""/>
+  <a id="photoDownload" download="clearsky-photo.jpg" class="photo-download-btn">⬇ Download</a>
 </div>
 
 <!-- Report Modal -->
@@ -959,9 +1017,18 @@ function deletePhoto(id, i) {
 }
 
 function viewPhoto(id, i) {
+  const src = state[id].photos[i];
   const overlay = document.getElementById('photoOverlay');
-  document.getElementById('photoFull').src = state[id].photos[i];
+  document.getElementById('photoFull').src = src;
+  document.getElementById('photoDownload').href = src;
+  document.getElementById('photoDownload').download = `clearsky-${id}-photo${i+1}.jpg`;
   overlay.classList.add('show');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('photoOverlay')) {
+    document.getElementById('photoOverlay').classList.remove('show');
+  }
 }
 
 function saveNote(id, val) {
@@ -1015,11 +1082,22 @@ function showReport() {
 
     if (flagged.length) {
       flagged.forEach(it => {
+        const photos = state[it.id].photos || [];
+        const photoHtml = photos.length ? `
+          <div class="report-photo-grid">
+            ${photos.map((src, i) => `
+              <div class="report-photo-wrap">
+                <img src="${src}" class="report-photo" onclick="viewPhoto('${it.id}',${i})" title="Click to enlarge"/>
+                <a href="${src}" download="clearsky-${it.id}-photo${i+1}.jpg" class="report-photo-dl">⬇ Download</a>
+              </div>
+            `).join('')}
+          </div>` : '';
         html += `<div class="report-item">
           <span class="report-status" style="color:#b83232">!</span>
-          <div>
+          <div style="flex:1">
             <div class="report-item-label" style="color:#b83232">${it.label}</div>
             ${state[it.id].note ? `<div class="report-item-note">${state[it.id].note}</div>` : ''}
+            ${photoHtml}
           </div>
         </div>`;
       });
