@@ -364,6 +364,91 @@
   .sum-label { color: var(--gray-400); font-size: 12px; }
   .sum-num   { color: var(--white); font-weight: 700; }
 
+  /* ── Photos ── */
+  .note-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 6px;
+    align-items: center;
+  }
+  .photo-toggle {
+    font-size: 11px;
+    color: var(--gray-400);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .photo-toggle:hover { color: var(--black); }
+  .photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .photo-thumb {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--gray-200);
+  }
+  .photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+  }
+  .photo-del {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .photo-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 600;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo-overlay.show { display: flex; }
+  .photo-overlay img {
+    max-width: 90%;
+    max-height: 85vh;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .photo-overlay-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    font-size: 28px;
+    color: white;
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+  @media print {
+    .photo-grid { display: flex !important; flex-wrap: wrap; gap: 6px; }
+    .photo-thumb { width: 70px; height: 70px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .photo-del { display: none !important; }
+    .note-actions { display: none !important; }
+  }
+
   .btn-pdf {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
@@ -674,6 +759,12 @@
   <button class="btn-submit" onclick="showReport()">View Report →</button>
 </div>
 
+<!-- Photo Viewer -->
+<div class="photo-overlay" id="photoOverlay" onclick="this.classList.remove('show')">
+  <button class="photo-overlay-close" onclick="document.getElementById('photoOverlay').classList.remove('show')">×</button>
+  <img id="photoFull" src=""/>
+</div>
+
 <!-- Report Modal -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
   <div class="modal">
@@ -780,12 +871,17 @@ function renderChecklist() {
               <button class="btn-flag"  onclick="setStatus('${it.id}','flag')">! Issue</button>
               <button class="btn-clear" onclick="setStatus('${it.id}','empty')">Clear</button>
             </div>
-            <span class="note-toggle" id="nt-${it.id}" onclick="event.stopPropagation(); toggleNote('${it.id}')">+ Add note</span>
+            <div class="note-actions" onclick="event.stopPropagation()">
+              <span class="note-toggle" id="nt-${it.id}" onclick="toggleNote('${it.id}')">+ Add note</span>
+              <span class="photo-toggle" onclick="triggerCamera('${it.id}')">📷 Add photo</span>
+            </div>
           </div>
         </div>
         <div class="item-note-wrap" id="note-wrap-${it.id}">
           <textarea id="note-${it.id}" placeholder="Add a note or description…" oninput="saveNote('${it.id}', this.value)"></textarea>
+          <div class="photo-grid" id="photos-${it.id}"></div>
         </div>
+        <input type="file" accept="image/*" capture="environment" id="cam-${it.id}" style="display:none" onchange="handlePhoto('${it.id}', this)"/>
       `;
       div.appendChild(item);
     });
@@ -807,10 +903,11 @@ function setStatus(id, status) {
   item.className = 'item ' + (status !== 'empty' ? status : '');
   const icon = document.getElementById('icon-' + id);
   icon.textContent = status === 'pass' ? '✓' : status === 'flag' ? '!' : '';
-  // auto-show note wrap on flag
+  // auto-show note wrap on flag and open camera
   if (status === 'flag') {
     document.getElementById('note-wrap-' + id).classList.add('show');
     document.getElementById('note-' + id).focus();
+    setTimeout(() => document.getElementById('cam-' + id).click(), 300);
   }
   updateAll();
 }
@@ -821,6 +918,50 @@ function toggleNote(id) {
   const showing = wrap.classList.toggle('show');
   tog.textContent = showing ? '− Hide note' : '+ Add note';
   if (showing) document.getElementById('note-' + id).focus();
+}
+
+function triggerCamera(id) {
+  document.getElementById('note-wrap-' + id).classList.add('show');
+  document.getElementById('cam-' + id).click();
+}
+
+function handlePhoto(id, input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    if (!state[id].photos) state[id].photos = [];
+    state[id].photos.push(e.target.result);
+    renderPhotos(id);
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function renderPhotos(id) {
+  const grid = document.getElementById('photos-' + id);
+  if (!grid) return;
+  grid.innerHTML = '';
+  (state[id].photos || []).forEach((src, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-thumb';
+    wrap.innerHTML = `
+      <img src="${src}" onclick="viewPhoto('${id}',${i})"/>
+      <button class="photo-del" onclick="deletePhoto('${id}',${i})">×</button>
+    `;
+    grid.appendChild(wrap);
+  });
+}
+
+function deletePhoto(id, i) {
+  state[id].photos.splice(i, 1);
+  renderPhotos(id);
+}
+
+function viewPhoto(id, i) {
+  const overlay = document.getElementById('photoOverlay');
+  document.getElementById('photoFull').src = state[id].photos[i];
+  overlay.classList.add('show');
 }
 
 function saveNote(id, val) {
