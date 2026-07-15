@@ -320,6 +320,22 @@
   .item-note-wrap textarea:focus { border-color: var(--black); }
   .item-note-wrap textarea::placeholder { color: var(--gray-400); }
 
+  .tag-input {
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--gray-800);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 8px 12px;
+    outline: none;
+    margin-top: 8px;
+    transition: border-color 0.2s;
+  }
+  .tag-input:focus { border-color: var(--black); }
+  .tag-input::placeholder { color: var(--gray-400); }
+
   /* toggle note link */
   .note-toggle {
     font-size: 11px;
@@ -939,6 +955,19 @@ SECTIONS.forEach(s => s.items.forEach(it => {
   state[it.id] = { status: 'empty', note: '' };
 }));
 
+// ── Appliance data tags: model/serial number recorded off the manufacturer's
+// data plate for each major appliance, plus an optional photo of the tag ──
+const DATA_TAG_ITEMS = [
+  { id:"dtFridge", label:"Refrigerator / Freezer", desc:"Model & serial number from the data tag inside the unit" },
+  { id:"dtStove",  label:"Stove / Oven",           desc:"Model & serial number from the data tag" },
+  { id:"dtWasher", label:"Washing Machine",         desc:"Model & serial number from the data tag" },
+  { id:"dtDryer",  label:"Dryer",                   desc:"Model & serial number from the data tag" },
+  { id:"dtHVAC",   label:"HVAC / AC Unit (if applicable)", desc:"Model & serial number from the data tag, if present" },
+];
+DATA_TAG_ITEMS.forEach(it => {
+  state[it.id] = { note: '', photos: [] };
+});
+
 function renderChecklist() {
   const main = document.getElementById('checklist');
   main.innerHTML = '';
@@ -987,6 +1016,36 @@ function renderChecklist() {
 
     main.appendChild(div);
   });
+
+  // ── Data Tags section ──
+  const dtDiv = document.createElement('div');
+  dtDiv.className = 'section';
+  dtDiv.style.animationDelay = (SECTIONS.length * 0.06) + 's';
+  dtDiv.innerHTML = `<div class="section-header"><span class="section-title">7. Appliance Data Tags</span></div>`;
+
+  DATA_TAG_ITEMS.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.id = 'item-' + it.id;
+    row.innerHTML = `
+      <div class="item-top" style="cursor:default;">
+        <div class="item-content" style="width:100%;">
+          <div class="item-label">${it.label}</div>
+          <div class="item-desc">${it.desc}</div>
+          <input type="text" class="tag-input" id="tag-${it.id}" placeholder="e.g. Model# ABC-123, Serial# XYZ-789" oninput="saveNote('${it.id}', this.value)"/>
+          <div class="note-actions">
+            <span class="photo-toggle" onclick="triggerCamera('${it.id}')">📷 Photo of tag</span>
+          </div>
+          <div class="photo-grid" id="photos-${it.id}"></div>
+        </div>
+      </div>
+      <input type="file" accept="image/*" capture="environment" id="cam-${it.id}" style="display:none" onchange="handlePhoto('${it.id}', this)"/>
+    `;
+    dtDiv.appendChild(row);
+  });
+
+  main.appendChild(dtDiv);
+
   updateAll();
 }
 
@@ -1158,6 +1217,31 @@ function buildReportHTML(meta) {
     html += `</div>`;
   });
 
+  html += `<div class="report-section"><div class="report-section-title">7. Appliance Data Tags</div>`;
+  DATA_TAG_ITEMS.forEach(it => {
+    const s = state[it.id];
+    const tagText = (s.note && s.note.trim()) ? s.note.trim() : 'Not recorded';
+    const photos = s.photos || [];
+    const photoHtml = photos.length ? `
+      <div class="report-photo-grid">
+        ${photos.map((src, i) => `
+          <div class="report-photo-wrap">
+            <img src="${src}" class="report-photo" onclick="viewPhoto('${it.id}',${i})" title="Click to enlarge"/>
+            <a href="${src}" download="clearsky-${it.id}-photo${i+1}.jpg" class="report-photo-dl">⬇ Download</a>
+          </div>
+        `).join('')}
+      </div>` : '';
+    html += `<div class="report-item">
+      <span class="report-status">🏷️</span>
+      <div style="flex:1">
+        <div class="report-item-label">${it.label}</div>
+        <div class="report-item-note">${tagText}</div>
+        ${photoHtml}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
   return html;
 }
 
@@ -1207,6 +1291,14 @@ function buildEmailBody(meta) {
     });
     lines.push('');
   });
+
+  lines.push('--- 7. Appliance Data Tags ---');
+  DATA_TAG_ITEMS.forEach(it => {
+    const s = state[it.id];
+    const tagText = (s.note && s.note.trim()) ? s.note.trim() : 'Not recorded';
+    lines.push(`${it.label}: ${tagText}`);
+  });
+  lines.push('');
 
   lines.push('Full details, notes, and photos are included in the attached PDF.');
 
