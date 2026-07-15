@@ -867,6 +867,7 @@
 
 <!-- jsPDF: used to build the checklist PDF in the browser before sending -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
   const MAINTENANCE_EMAIL = "maintenance@findrealestate.com";
 
@@ -1098,18 +1099,11 @@ function updateAll() {
   document.getElementById('progressLabel').textContent = `${pass + flag} / ${TOTAL} complete`;
 }
 
-function showReport() {
-  const inspector = document.getElementById('inspector').value || 'Not specified';
-  const address   = document.getElementById('propAddress').value || 'Not specified';
-  const unit      = document.getElementById('propUnit').value || 'Not specified';
-  const date = document.getElementById('inspDate').value
-    ? new Date(document.getElementById('inspDate').value + 'T12:00:00').toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})
-    : 'Not specified';
-
+function buildReportHTML(meta) {
   let html = `
     <div class="report-section">
       <div class="report-section-title">Inspection Details</div>
-      <div class="report-item"><span class="report-status">📍</span><div><div class="report-item-label">${address}, Unit ${unit}</div><div class="report-item-note">Inspector: ${inspector} &nbsp;·&nbsp; Date: ${date}</div></div></div>
+      <div class="report-item"><span class="report-status">📍</span><div><div class="report-item-label">${meta.address}, Unit ${meta.unit}</div><div class="report-item-note">Inspector: ${meta.inspector} &nbsp;·&nbsp; Date: ${meta.date}</div></div></div>
     </div>
   `;
 
@@ -1164,7 +1158,12 @@ function showReport() {
     html += `</div>`;
   });
 
-  document.getElementById('reportContent').innerHTML = html;
+  return html;
+}
+
+function showReport() {
+  const meta = getReportMeta();
+  document.getElementById('reportContent').innerHTML = buildReportHTML(meta);
   document.getElementById('modalOverlay').classList.add('show');
 }
 
@@ -1214,74 +1213,68 @@ function buildEmailBody(meta) {
   return { text: lines.join('\n'), flags: totalFlags };
 }
 
-// ── Build the checklist PDF in the browser using jsPDF, including photos ──
-function buildPdfBase64(meta) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const marginX = 40;
-  let y = 50;
+// ── Build a branded, styled PDF that matches the on-screen report design ──
+// Renders the same markup/CSS used by "View Report" into a hidden container,
+// captures it as an image with html2canvas, then slices it across PDF pages.
+function capturePdfBase64(meta) {
+  return new Promise((resolve, reject) => {
+    const width = 650; // px, matches a comfortable reading width for the report styles
 
-  function ensureSpace(needed) {
-    if (y + needed > 760) { doc.addPage(); y = 50; }
-  }
+    const wrap = document.createElement('div');
+    wrap.style.position = 'fixed';
+    wrap.style.left = '-9999px';
+    wrap.style.top = '0';
+    wrap.style.width = width + 'px';
+    wrap.style.background = '#ffffff';
+    wrap.style.padding = '0';
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('ClearSky — Walkthrough Report', marginX, y);
-  y += 24;
+    wrap.innerHTML = `
+      <div style="background:#0a0a0a;padding:20px 28px;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:22px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;">CLEAR</span><span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:22px;color:#0a0a0a;background:#ffffff;letter-spacing:2px;text-transform:uppercase;padding:2px 6px;margin-left:2px;">SKY</span>
+        </div>
+        <div style="font-family:'Montserrat',sans-serif;font-weight:300;font-size:8px;letter-spacing:3px;color:rgba(255,255,255,0.55);text-transform:uppercase;margin-top:6px;">I N V E S T M E N T &nbsp; G R O U P</div>
+      </div>
+      <div style="padding:24px 28px 36px;font-family:'DM Sans',sans-serif;">
+        <div style="font-family:'DM Sans',sans-serif;font-size:22px;font-weight:700;color:#0a0a0a;margin-bottom:18px;">Walkthrough Report</div>
+        <div id="pdfReportContent"></div>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+    wrap.querySelector('#pdfReportContent').innerHTML = buildReportHTML(meta);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.text(`Property: ${meta.address}, Unit ${meta.unit}`, marginX, y); y += 14;
-  doc.text(`Inspector: ${meta.inspector}`, marginX, y); y += 14;
-  doc.text(`Date: ${meta.date}`, marginX, y); y += 20;
+    // Give web fonts / layout a brief moment to settle before capturing
+    setTimeout(() => {
+      html2canvas(wrap, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+        document.body.removeChild(wrap);
 
-  SECTIONS.forEach(sec => {
-    ensureSpace(30);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(sec.title, marginX, y);
-    y += 16;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfPageHeight = doc.internal.pageSize.getHeight();
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-    sec.items.forEach(it => {
-      const s = state[it.id];
-      const mark = s.status === 'pass' ? 'PASS' : s.status === 'flag' ? 'ISSUE' : 'PENDING';
-      ensureSpace(16);
-      doc.setTextColor(
-        s.status === 'pass' ? 26 : s.status === 'flag' ? 184 : 130,
-        s.status === 'pass' ? 107 : s.status === 'flag' ? 50 : 130,
-        s.status === 'pass' ? 60 : s.status === 'flag' ? 50 : 130
-      );
-      const label = `[${mark}] ${it.label}`;
-      const wrapped = doc.splitTextToSize(label, pageWidth - marginX * 2);
-      doc.text(wrapped, marginX, y);
-      y += wrapped.length * 12;
-      doc.setTextColor(90, 87, 83);
+        const imgData = canvas.toDataURL('image/png');
+        let heightLeft = imgHeight;
+        let position = 0;
 
-      if (s.note) {
-        const noteLines = doc.splitTextToSize(`Note: ${s.note}`, pageWidth - marginX * 2 - 10);
-        ensureSpace(noteLines.length * 12);
-        doc.text(noteLines, marginX + 10, y);
-        y += noteLines.length * 12;
-      }
+        doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfPageHeight;
 
-      (s.photos || []).forEach(src => {
-        ensureSpace(140);
-        try {
-          doc.addImage(src, 'JPEG', marginX + 10, y, 120, 120);
-        } catch (e) {
-          try { doc.addImage(src, 'PNG', marginX + 10, y, 120, 120); } catch (e2) { /* skip unreadable image */ }
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          doc.addPage();
+          doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+          heightLeft -= pdfPageHeight;
         }
-        y += 130;
-      });
-    });
-    y += 10;
-  });
 
-  return doc.output('datauristring').split(',')[1]; // base64 only, no data: prefix
+        resolve(doc.output('datauristring').split(',')[1]); // base64 only
+      }).catch(err => {
+        document.body.removeChild(wrap);
+        reject(err);
+      });
+    }, 50);
+  });
 }
 
 function sendEmailReport() {
@@ -1295,13 +1288,12 @@ function sendEmailReport() {
   btns.forEach(b => { b.disabled = true; b.textContent = 'Preparing…'; });
   if (statusEl) { statusEl.textContent = 'Building PDF and sending…'; statusEl.className = 'email-status show ok'; }
 
-  try {
-    const meta = getReportMeta();
-    const { text, flags } = buildEmailBody(meta);
-    const pdfBase64 = buildPdfBase64(meta);
-    const subject = `Walkthrough Checklist — ${meta.address}, Unit ${meta.unit}${flags > 0 ? ` (${flags} issue${flags > 1 ? 's' : ''} flagged)` : ''}`;
+  const meta = getReportMeta();
+  const { text, flags } = buildEmailBody(meta);
+  const subject = `Walkthrough Checklist — ${meta.address}, Unit ${meta.unit}${flags > 0 ? ` (${flags} issue${flags > 1 ? 's' : ''} flagged)` : ''}`;
 
-    fetch(APPS_SCRIPT_URL, {
+  capturePdfBase64(meta)
+    .then(pdfBase64 => fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
       body: JSON.stringify({
@@ -1310,7 +1302,7 @@ function sendEmailReport() {
         message: text,
         pdfBase64: pdfBase64
       })
-    })
+    }))
     .then(r => r.json())
     .then(res => {
       btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
@@ -1327,12 +1319,6 @@ function sendEmailReport() {
       if (statusEl) { statusEl.textContent = msg; statusEl.className = 'email-status show err'; }
       else alert(msg);
     });
-  } catch (err) {
-    btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
-    const msg = 'Could not build the PDF (' + err.message + '). Please use "Save as PDF" instead.';
-    if (statusEl) { statusEl.textContent = msg; statusEl.className = 'email-status show err'; }
-    else alert(msg);
-  }
 }
 
 renderChecklist();
