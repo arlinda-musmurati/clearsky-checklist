@@ -767,6 +767,30 @@
     .property-inner { grid-template-columns: 1fr; }
     .summary-counts { gap: 12px; }
     .modal { padding: 20px; }
+
+    .summary-bar {
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      gap: 8px;
+      justify-content: center;
+    }
+    .summary-counts {
+      order: -1;
+      width: 100%;
+      justify-content: center;
+    }
+    .btn-pdf, .btn-email, .btn-submit {
+      flex: 1 1 0;
+      text-align: center;
+      padding: 10px 6px;
+      font-size: 11.5px;
+      white-space: normal;
+    }
+    .toast { bottom: 96px; width: 92%; }
+  }
+
+  @media (max-width: 380px) {
+    .btn-pdf, .btn-email, .btn-submit { font-size: 10.5px; padding: 9px 4px; }
   }
 
   @media print {
@@ -1122,12 +1146,40 @@ function handlePhoto(id, input) {
   const file = input.files[0];
   const reader = new FileReader();
   reader.onload = function(e) {
-    if (!state[id].photos) state[id].photos = [];
-    state[id].photos.push(e.target.result);
-    renderPhotos(id);
+    compressImage(e.target.result, 1280, 0.72).then(compressed => {
+      if (!state[id].photos) state[id].photos = [];
+      state[id].photos.push(compressed);
+      renderPhotos(id);
+    });
   };
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+// ── Resize + compress a photo (camera images can be several MB; this keeps
+// the checklist fast to build/send while the photo stays perfectly legible) ──
+function compressImage(dataUrl, maxDim, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      try {
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } catch (e) {
+        resolve(dataUrl); // fall back to original if canvas export fails
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
 }
 
 function renderPhotos(id) {
@@ -1519,7 +1571,7 @@ function sendEmailReport() {
 
       // Abort and show an error instead of hanging forever if the network/script stalls
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       return fetch(APPS_SCRIPT_URL, {
         method: 'POST',
@@ -1558,7 +1610,7 @@ function sendEmailReport() {
       btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
       const timedOut = err.name === 'AbortError';
       const msg = timedOut
-        ? 'This is taking too long (over 30s) — cancelled. Please try again, or use "Save as PDF" and send it manually.'
+        ? 'This is taking too long (over 60s) — cancelled. Please try again, or use "Save as PDF" and send it manually.'
         : 'Could not send the email automatically: ' + err.message;
       if (statusEl) { statusEl.textContent = msg; statusEl.className = 'email-status show err'; }
       showToast(msg, 'err');
