@@ -1386,7 +1386,7 @@ function buildEmailBody(meta) {
   });
   lines.push('');
 
-  lines.push('Full details, notes, and photos are included in the attached PDF.');
+  lines.push('Full details and notes are in the attached PDF. Photos are also attached separately below for easy downloading.');
 
   return { text: lines.join('\n'), flags: totalFlags };
 }
@@ -1405,6 +1405,32 @@ function collectAllPhotos() {
     });
   });
   return photos;
+}
+
+function sanitizeFilename(str) {
+  return str.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'photo';
+}
+
+function dataUrlParts(dataUrl) {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.*)$/);
+  if (!match) return null;
+  return { mimeType: match[1], base64: match[2] };
+}
+
+// ── Build the list of individual photo attachments (separate from the PDF) ──
+// so the maintenance team can save each photo directly from the email,
+// since not all PDF viewers support saving an embedded image out of a PDF.
+function buildPhotoAttachments(photos) {
+  return photos.map((p, i) => {
+    const parts = dataUrlParts(p.src);
+    if (!parts) return null;
+    const ext = parts.mimeType.indexOf('png') !== -1 ? 'png' : 'jpg';
+    return {
+      filename: `ClearSky-${sanitizeFilename(p.label)}-${i + 1}.${ext}`,
+      mimeType: parts.mimeType,
+      base64: parts.base64
+    };
+  }).filter(Boolean);
 }
 
 function loadImageDimensions(src) {
@@ -1581,7 +1607,8 @@ function sendEmailReport() {
           to: MAINTENANCE_EMAIL,
           subject: subject,
           message: text,
-          pdfBase64: pdfBase64
+          pdfBase64: pdfBase64,
+          photos: buildPhotoAttachments(collectAllPhotos())
         })
       }).finally(() => clearTimeout(timeoutId));
     })
