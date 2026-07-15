@@ -1354,8 +1354,11 @@ async function addPhotoAppendix(doc, photos) {
   doc.setTextColor(20, 20, 20);
   y += 34;
 
-  for (const p of photos) {
-    const dims = await loadImageDimensions(p.src);
+  // Load all photo dimensions in parallel first (much faster than one-by-one)
+  const dimsList = await Promise.all(photos.map(p => loadImageDimensions(p.src)));
+
+  photos.forEach((p, idx) => {
+    const dims = dimsList[idx];
     const scale = Math.min(maxImgWidth / dims.width, maxImgHeight / dims.height, 1);
     const w = dims.width * scale;
     const h = dims.height * scale;
@@ -1377,7 +1380,7 @@ async function addPhotoAppendix(doc, photos) {
       try { doc.addImage(p.src, format === 'JPEG' ? 'PNG' : 'JPEG', marginX, y, w, h); } catch (e2) { /* skip unreadable image */ }
     }
     y += h + 24;
-  }
+  });
 }
 
 // ── Build a branded, styled PDF that matches the on-screen report design ──
@@ -1413,7 +1416,7 @@ async function capturePdfBase64(meta) {
   try {
     // Give web fonts / layout a brief moment to settle before capturing
     await new Promise(r => setTimeout(r, 50));
-    const canvas = await html2canvas(wrap, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const canvas = await html2canvas(wrap, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
     document.body.removeChild(wrap);
 
     const { jsPDF } = window.jspdf;
@@ -1456,24 +1459,34 @@ function sendEmailReport() {
 
   const btns = [document.getElementById('emailBtn'), document.getElementById('emailBtnModal')].filter(Boolean);
   const statusEl = document.getElementById('emailStatus');
-  btns.forEach(b => { b.disabled = true; b.textContent = 'Preparing…'; });
-  if (statusEl) { statusEl.textContent = 'Building PDF and sending…'; statusEl.className = 'email-status show ok'; }
+  btns.forEach(b => { b.disabled = true; b.textContent = 'Building PDF…'; });
+  if (statusEl) { statusEl.textContent = 'Building PDF…'; statusEl.className = 'email-status show ok'; }
 
   const meta = getReportMeta();
   const { text, flags } = buildEmailBody(meta);
   const subject = `Walkthrough Checklist — ${meta.address}, Unit ${meta.unit}${flags > 0 ? ` (${flags} issue${flags > 1 ? 's' : ''} flagged)` : ''}`;
 
   capturePdfBase64(meta)
-    .then(pdfBase64 => fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
-      body: JSON.stringify({
-        to: MAINTENANCE_EMAIL,
-        subject: subject,
-        message: text,
-        pdfBase64: pdfBase64
-      })
-    }))
+    .then(pdfBase64 => {
+      btns.forEach(b => { b.textContent = 'Sending…'; });
+      if (statusEl) { statusEl.textContent = 'Sending email…'; }
+
+      // Abort and show an error instead of hanging forever if the network/script stalls
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      return fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+        signal: controller.signal,
+        body: JSON.stringify({
+          to: MAINTENANCE_EMAIL,
+          subject: subject,
+          message: text,
+          pdfBase64: pdfBase64
+        })
+      }).finally(() => clearTimeout(timeoutId));
+    })
     .then(r => r.json())
     .then(res => {
       btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
@@ -1486,7 +1499,10 @@ function sendEmailReport() {
     })
     .catch(err => {
       btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
-      const msg = 'Could not send the email automatically (' + err.message + '). Please use "Save as PDF" and send it manually.';
+      const timedOut = err.name === 'AbortError';
+      const msg = timedOut
+        ? 'This is taking too long (over 30s) — the request was cancelled. Please try again, or use "Save as PDF" and send it manually.'
+        : 'Could not send the email automatically (' + err.message + '). Please use "Save as PDF" and send it manually.';
       if (statusEl) { statusEl.textContent = msg; statusEl.className = 'email-status show err'; }
       else alert(msg);
     });
