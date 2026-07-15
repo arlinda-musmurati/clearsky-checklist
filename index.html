@@ -482,6 +482,23 @@
   }
   .btn-pdf:hover { border-color: white; background: rgba(255,255,255,0.1); }
 
+  .btn-email {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    background: transparent;
+    color: var(--white);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 10px 22px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-email:hover { border-color: white; background: rgba(255,255,255,0.1); }
+  .btn-email:disabled { opacity: 0.5; cursor: not-allowed; }
+
   .btn-submit {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
@@ -632,6 +649,16 @@
     transition: opacity 0.2s;
   }
   .btn-print:hover { opacity: 0.8; }
+
+  .email-status {
+    font-size: 12px;
+    margin-top: 10px;
+    text-align: center;
+    display: none;
+  }
+  .email-status.show { display: block; }
+  .email-status.ok { color: var(--pass); }
+  .email-status.err { color: var(--flag); }
 
   /* ── Signature Section ── */
   .signature-section {
@@ -813,6 +840,7 @@
     </div>
   </div>
   <button class="btn-pdf" onclick="window.print()">Save as PDF</button>
+  <button class="btn-email" id="emailBtn" onclick="sendEmailReport()">✉ Email Maintenance</button>
   <button class="btn-submit" onclick="showReport()">View Report →</button>
 </div>
 
@@ -832,8 +860,20 @@
     </div>
     <div id="reportContent"></div>
     <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
+    <button class="btn-email" id="emailBtnModal" style="width:100%;color:var(--black);border-color:var(--gray-200);margin-top:10px;" onclick="sendEmailReport()">✉ Email Maintenance</button>
+    <div class="email-status" id="emailStatus"></div>
   </div>
 </div>
+
+<!-- jsPDF: used to build the checklist PDF in the browser before sending -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  const MAINTENANCE_EMAIL = "maintenance@findrealestate.com";
+
+  // ── Paste the Web App URL from your Google Apps Script deployment here ──
+  // (see setup instructions provided separately). Leave as-is until you have it.
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuu5TJL0kCEcwrhOLzeAHmAH1ueAijSwSRLq88Hk5pYtEi1NzYAHojoTagR61UD83R/exec";
+</script>
 
 <script>
 const SECTIONS = [
@@ -1133,6 +1173,166 @@ function closeModal(e) {
 }
 function closeModalBtn() {
   document.getElementById('modalOverlay').classList.remove('show');
+}
+
+// ── Gather property + inspection details used by both the email body and the PDF ──
+function getReportMeta() {
+  const inspector = document.getElementById('inspector').value || 'Not specified';
+  const address   = document.getElementById('propAddress').value || 'Not specified';
+  const unit      = document.getElementById('propUnit').value || 'Not specified';
+  const date = document.getElementById('inspDate').value
+    ? new Date(document.getElementById('inspDate').value + 'T12:00:00').toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})
+    : 'Not specified';
+  return { inspector, address, unit, date };
+}
+
+// ── Build a plain-text summary of the checklist for the email body ──
+function buildEmailBody(meta) {
+  let lines = [];
+  lines.push(`PROPERTY: ${meta.address}, Unit ${meta.unit}`);
+  lines.push(`INSPECTOR: ${meta.inspector}`);
+  lines.push(`DATE: ${meta.date}`);
+  lines.push('');
+
+  let totalFlags = 0;
+
+  SECTIONS.forEach(sec => {
+    lines.push(`--- ${sec.title} ---`);
+    sec.items.forEach(it => {
+      const s = state[it.id];
+      const mark = s.status === 'pass' ? '[PASS]' : s.status === 'flag' ? '[ISSUE]' : '[PENDING]';
+      if (s.status === 'flag') totalFlags++;
+      let line = `${mark} ${it.label}`;
+      if (s.note) line += ` — Note: ${s.note}`;
+      lines.push(line);
+    });
+    lines.push('');
+  });
+
+  lines.push('Full details, notes, and photos are included in the attached PDF.');
+
+  return { text: lines.join('\n'), flags: totalFlags };
+}
+
+// ── Build the checklist PDF in the browser using jsPDF, including photos ──
+function buildPdfBase64(meta) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginX = 40;
+  let y = 50;
+
+  function ensureSpace(needed) {
+    if (y + needed > 760) { doc.addPage(); y = 50; }
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('ClearSky — Walkthrough Report', marginX, y);
+  y += 24;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(`Property: ${meta.address}, Unit ${meta.unit}`, marginX, y); y += 14;
+  doc.text(`Inspector: ${meta.inspector}`, marginX, y); y += 14;
+  doc.text(`Date: ${meta.date}`, marginX, y); y += 20;
+
+  SECTIONS.forEach(sec => {
+    ensureSpace(30);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(sec.title, marginX, y);
+    y += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    sec.items.forEach(it => {
+      const s = state[it.id];
+      const mark = s.status === 'pass' ? 'PASS' : s.status === 'flag' ? 'ISSUE' : 'PENDING';
+      ensureSpace(16);
+      doc.setTextColor(
+        s.status === 'pass' ? 26 : s.status === 'flag' ? 184 : 130,
+        s.status === 'pass' ? 107 : s.status === 'flag' ? 50 : 130,
+        s.status === 'pass' ? 60 : s.status === 'flag' ? 50 : 130
+      );
+      const label = `[${mark}] ${it.label}`;
+      const wrapped = doc.splitTextToSize(label, pageWidth - marginX * 2);
+      doc.text(wrapped, marginX, y);
+      y += wrapped.length * 12;
+      doc.setTextColor(90, 87, 83);
+
+      if (s.note) {
+        const noteLines = doc.splitTextToSize(`Note: ${s.note}`, pageWidth - marginX * 2 - 10);
+        ensureSpace(noteLines.length * 12);
+        doc.text(noteLines, marginX + 10, y);
+        y += noteLines.length * 12;
+      }
+
+      (s.photos || []).forEach(src => {
+        ensureSpace(140);
+        try {
+          doc.addImage(src, 'JPEG', marginX + 10, y, 120, 120);
+        } catch (e) {
+          try { doc.addImage(src, 'PNG', marginX + 10, y, 120, 120); } catch (e2) { /* skip unreadable image */ }
+        }
+        y += 130;
+      });
+    });
+    y += 10;
+  });
+
+  return doc.output('datauristring').split(',')[1]; // base64 only, no data: prefix
+}
+
+function sendEmailReport() {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
+    alert('Email sending is not set up yet. Paste your Google Apps Script Web App URL into APPS_SCRIPT_URL near the top of this file.');
+    return;
+  }
+
+  const btns = [document.getElementById('emailBtn'), document.getElementById('emailBtnModal')].filter(Boolean);
+  const statusEl = document.getElementById('emailStatus');
+  btns.forEach(b => { b.disabled = true; b.textContent = 'Preparing…'; });
+  if (statusEl) { statusEl.textContent = 'Building PDF and sending…'; statusEl.className = 'email-status show ok'; }
+
+  try {
+    const meta = getReportMeta();
+    const { text, flags } = buildEmailBody(meta);
+    const pdfBase64 = buildPdfBase64(meta);
+    const subject = `Walkthrough Checklist — ${meta.address}, Unit ${meta.unit}${flags > 0 ? ` (${flags} issue${flags > 1 ? 's' : ''} flagged)` : ''}`;
+
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+      body: JSON.stringify({
+        to: MAINTENANCE_EMAIL,
+        subject: subject,
+        message: text,
+        pdfBase64: pdfBase64
+      })
+    })
+    .then(r => r.json())
+    .then(res => {
+      btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
+      if (res && res.success) {
+        if (statusEl) { statusEl.textContent = 'Report emailed to maintenance@findrealestate.com ✓'; statusEl.className = 'email-status show ok'; }
+        else alert('Report emailed to maintenance@findrealestate.com');
+      } else {
+        throw new Error((res && res.error) || 'Unknown error');
+      }
+    })
+    .catch(err => {
+      btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
+      const msg = 'Could not send the email automatically (' + err.message + '). Please use "Save as PDF" and send it manually.';
+      if (statusEl) { statusEl.textContent = msg; statusEl.className = 'email-status show err'; }
+      else alert(msg);
+    });
+  } catch (err) {
+    btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
+    const msg = 'Could not build the PDF (' + err.message + '). Please use "Save as PDF" instead.';
+    if (statusEl) { statusEl.textContent = msg; statusEl.className = 'email-status show err'; }
+    else alert(msg);
+  }
 }
 
 renderChecklist();
