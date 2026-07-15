@@ -1009,7 +1009,7 @@ function renderChecklist() {
           <textarea id="note-${it.id}" placeholder="Add a note or description…" oninput="saveNote('${it.id}', this.value)"></textarea>
           <div class="photo-grid" id="photos-${it.id}"></div>
         </div>
-        <input type="file" accept="image/*" capture="environment" id="cam-${it.id}" style="display:none" onchange="handlePhoto('${it.id}', this)"/>
+        <input type="file" accept="image/*" id="cam-${it.id}" style="display:none" onchange="handlePhoto('${it.id}', this)"/>
       `;
       div.appendChild(item);
     });
@@ -1039,7 +1039,7 @@ function renderChecklist() {
           <div class="photo-grid" id="photos-${it.id}"></div>
         </div>
       </div>
-      <input type="file" accept="image/*" capture="environment" id="cam-${it.id}" style="display:none" onchange="handlePhoto('${it.id}', this)"/>
+      <input type="file" accept="image/*" id="cam-${it.id}" style="display:none" onchange="handlePhoto('${it.id}', this)"/>
     `;
     dtDiv.appendChild(row);
   });
@@ -1079,7 +1079,8 @@ function toggleNote(id) {
 }
 
 function triggerCamera(id) {
-  document.getElementById('note-wrap-' + id).classList.add('show');
+  const wrap = document.getElementById('note-wrap-' + id);
+  if (wrap) wrap.classList.add('show');
   document.getElementById('cam-' + id).click();
 }
 
