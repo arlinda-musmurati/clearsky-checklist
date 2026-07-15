@@ -1305,68 +1305,146 @@ function buildEmailBody(meta) {
   return { text: lines.join('\n'), flags: totalFlags };
 }
 
+// ── Collect every photo in the checklist (inspection items + data tags) with a label ──
+function collectAllPhotos() {
+  const photos = [];
+  SECTIONS.forEach(sec => sec.items.forEach(it => {
+    (state[it.id].photos || []).forEach((src, i) => {
+      photos.push({ label: `${it.label}${(state[it.id].photos.length > 1) ? ' (' + (i+1) + ')' : ''}`, src });
+    });
+  }));
+  DATA_TAG_ITEMS.forEach(it => {
+    (state[it.id].photos || []).forEach((src, i) => {
+      photos.push({ label: `${it.label} — Data Tag${(state[it.id].photos.length > 1) ? ' (' + (i+1) + ')' : ''}`, src });
+    });
+  });
+  return photos;
+}
+
+function loadImageDimensions(src) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth || 1, height: img.naturalHeight || 1 });
+    img.onerror = () => resolve({ width: 1, height: 1 });
+    img.src = src;
+  });
+}
+
+// ── Add a "Photos" appendix with real, individually embedded images ──
+// (as opposed to the flattened report screenshot) so each photo can be
+// extracted/saved from the PDF in most PDF readers.
+async function addPhotoAppendix(doc, photos) {
+  const marginX = 40;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const maxImgWidth = pageWidth - marginX * 2;
+  const maxImgHeight = 320;
+
+  doc.addPage();
+  let y = 50;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('Photos', marginX, y);
+  y += 10;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(130, 130, 130);
+  doc.text('Right-click (or press-and-hold) any photo below to save it individually.', marginX, y + 12);
+  doc.setTextColor(20, 20, 20);
+  y += 34;
+
+  for (const p of photos) {
+    const dims = await loadImageDimensions(p.src);
+    const scale = Math.min(maxImgWidth / dims.width, maxImgHeight / dims.height, 1);
+    const w = dims.width * scale;
+    const h = dims.height * scale;
+
+    if (y + h + 34 > pageHeight - 40) {
+      doc.addPage();
+      y = 50;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(p.label, marginX, y);
+    y += 14;
+
+    let format = p.src.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
+    try {
+      doc.addImage(p.src, format, marginX, y, w, h);
+    } catch (e) {
+      try { doc.addImage(p.src, format === 'JPEG' ? 'PNG' : 'JPEG', marginX, y, w, h); } catch (e2) { /* skip unreadable image */ }
+    }
+    y += h + 24;
+  }
+}
+
 // ── Build a branded, styled PDF that matches the on-screen report design ──
 // Renders the same markup/CSS used by "View Report" into a hidden container,
 // captures it as an image with html2canvas, then slices it across PDF pages.
-function capturePdfBase64(meta) {
-  return new Promise((resolve, reject) => {
-    const width = 650; // px, matches a comfortable reading width for the report styles
+// A "Photos" appendix with real embedded (downloadable) images is added at the end.
+async function capturePdfBase64(meta) {
+  const width = 650; // px, matches a comfortable reading width for the report styles
 
-    const wrap = document.createElement('div');
-    wrap.style.position = 'fixed';
-    wrap.style.left = '-9999px';
-    wrap.style.top = '0';
-    wrap.style.width = width + 'px';
-    wrap.style.background = '#ffffff';
-    wrap.style.padding = '0';
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-9999px';
+  wrap.style.top = '0';
+  wrap.style.width = width + 'px';
+  wrap.style.background = '#ffffff';
+  wrap.style.padding = '0';
 
-    wrap.innerHTML = `
-      <div style="background:#0a0a0a;padding:20px 28px;">
-        <div style="display:flex;align-items:center;gap:0;">
-          <span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:22px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;">CLEAR</span><span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:22px;color:#0a0a0a;background:#ffffff;letter-spacing:2px;text-transform:uppercase;padding:2px 6px;margin-left:2px;">SKY</span>
-        </div>
-        <div style="font-family:'Montserrat',sans-serif;font-weight:300;font-size:8px;letter-spacing:3px;color:rgba(255,255,255,0.55);text-transform:uppercase;margin-top:6px;">I N V E S T M E N T &nbsp; G R O U P</div>
+  wrap.innerHTML = `
+    <div style="background:#0a0a0a;padding:20px 28px;">
+      <div style="display:flex;align-items:center;gap:0;">
+        <span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:22px;color:#ffffff;letter-spacing:2px;text-transform:uppercase;">CLEAR</span><span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:22px;color:#0a0a0a;background:#ffffff;letter-spacing:2px;text-transform:uppercase;padding:2px 6px;margin-left:2px;">SKY</span>
       </div>
-      <div style="padding:24px 28px 36px;font-family:'DM Sans',sans-serif;">
-        <div style="font-family:'DM Sans',sans-serif;font-size:22px;font-weight:700;color:#0a0a0a;margin-bottom:18px;">Walkthrough Report</div>
-        <div id="pdfReportContent"></div>
-      </div>
-    `;
-    document.body.appendChild(wrap);
-    wrap.querySelector('#pdfReportContent').innerHTML = buildReportHTML(meta);
+      <div style="font-family:'Montserrat',sans-serif;font-weight:300;font-size:8px;letter-spacing:3px;color:rgba(255,255,255,0.55);text-transform:uppercase;margin-top:6px;">I N V E S T M E N T &nbsp; G R O U P</div>
+    </div>
+    <div style="padding:24px 28px 36px;font-family:'DM Sans',sans-serif;">
+      <div style="font-family:'DM Sans',sans-serif;font-size:22px;font-weight:700;color:#0a0a0a;margin-bottom:18px;">Walkthrough Report</div>
+      <div id="pdfReportContent"></div>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  wrap.querySelector('#pdfReportContent').innerHTML = buildReportHTML(meta);
 
+  try {
     // Give web fonts / layout a brief moment to settle before capturing
-    setTimeout(() => {
-      html2canvas(wrap, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
-        document.body.removeChild(wrap);
+    await new Promise(r => setTimeout(r, 50));
+    const canvas = await html2canvas(wrap, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    document.body.removeChild(wrap);
 
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-        const pdfWidth = doc.internal.pageSize.getWidth();
-        const pdfPageHeight = doc.internal.pageSize.getHeight();
-        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const pdfWidth = doc.internal.pageSize.getWidth();
+    const pdfPageHeight = doc.internal.pageSize.getHeight();
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-        const imgData = canvas.toDataURL('image/png');
-        let heightLeft = imgHeight;
-        let position = 0;
+    const imgData = canvas.toDataURL('image/png');
+    let heightLeft = imgHeight;
+    let position = 0;
 
-        doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfPageHeight;
+    doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+    heightLeft -= pdfPageHeight;
 
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          doc.addPage();
-          doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-          heightLeft -= pdfPageHeight;
-        }
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      doc.addPage();
+      doc.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfPageHeight;
+    }
 
-        resolve(doc.output('datauristring').split(',')[1]); // base64 only
-      }).catch(err => {
-        document.body.removeChild(wrap);
-        reject(err);
-      });
-    }, 50);
-  });
+    const photos = collectAllPhotos();
+    if (photos.length) {
+      await addPhotoAppendix(doc, photos);
+    }
+
+    return doc.output('datauristring').split(',')[1]; // base64 only
+  } catch (err) {
+    if (wrap.parentNode) document.body.removeChild(wrap);
+    throw err;
+  }
 }
 
 function sendEmailReport() {
