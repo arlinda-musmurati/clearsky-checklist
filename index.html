@@ -946,7 +946,7 @@
 
   // ── Paste the Web App URL from your Google Apps Script deployment here ──
   // (see setup instructions provided separately). Leave as-is until you have it.
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxuu5TJL0kCEcwrhOLzeAHmAH1ueAijSwSRLq88Hk5pYtEi1NzYAHojoTagR61UD83R/exec";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVlBqGphKNcawbmTCPQh1n_63A43JCaIFsGM_ETKShhQFAhF-WR08tKnc2d4Ln294E/exec";
 </script>
 
 <script>
@@ -1306,8 +1306,9 @@ function buildReportHTML(meta) {
   html += `<div class="report-section"><div class="report-section-title">7. Appliance Data Tags</div>`;
   DATA_TAG_ITEMS.forEach(it => {
     const s = state[it.id];
-    const tagText = (s.note && s.note.trim()) ? s.note.trim() : 'Not recorded';
     const photos = s.photos || [];
+    const hasNote = s.note && s.note.trim();
+    const tagText = hasNote ? s.note.trim() : (photos.length ? 'See photo below' : 'Not recorded');
     const photoHtml = photos.length ? `
       <div class="report-photo-grid">
         ${photos.map((src, i) => `
@@ -1381,7 +1382,9 @@ function buildEmailBody(meta) {
   lines.push('--- 7. Appliance Data Tags ---');
   DATA_TAG_ITEMS.forEach(it => {
     const s = state[it.id];
-    const tagText = (s.note && s.note.trim()) ? s.note.trim() : 'Not recorded';
+    const hasNote = s.note && s.note.trim();
+    const hasPhotos = (s.photos || []).length > 0;
+    const tagText = hasNote ? s.note.trim() : (hasPhotos ? 'See attached photo' : 'Not recorded');
     lines.push(`${it.label}: ${tagText}`);
   });
   lines.push('');
@@ -1461,7 +1464,7 @@ async function addPhotoAppendix(doc, photos) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(130, 130, 130);
-  doc.text('Right-click (or press-and-hold) any photo below to save it individually.', marginX, y + 12);
+  doc.text('Full-resolution copies of each photo are also attached separately to this email.', marginX, y + 12);
   doc.setTextColor(20, 20, 20);
   y += 34;
 
