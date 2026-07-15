@@ -1358,38 +1358,37 @@ function getReportMeta() {
 
 // ── Build a plain-text summary of the checklist for the email body ──
 function buildEmailBody(meta) {
-  let lines = [];
-  lines.push(`PROPERTY: ${meta.address}, Unit ${meta.unit}`);
-  lines.push(`INSPECTOR: ${meta.inspector}`);
-  lines.push(`DATE: ${meta.date}`);
-  lines.push('');
-
   let totalFlags = 0;
+  const flaggedLabels = [];
 
   SECTIONS.forEach(sec => {
-    lines.push(`--- ${sec.title} ---`);
     sec.items.forEach(it => {
-      const s = state[it.id];
-      const mark = s.status === 'pass' ? '[PASS]' : s.status === 'flag' ? '[ISSUE]' : '[PENDING]';
-      if (s.status === 'flag') totalFlags++;
-      let line = `${mark} ${it.label}`;
-      if (s.note) line += ` — Note: ${s.note}`;
-      lines.push(line);
+      if (state[it.id].status === 'flag') {
+        totalFlags++;
+        flaggedLabels.push(it.label);
+      }
     });
-    lines.push('');
   });
 
-  lines.push('--- 7. Appliance Data Tags ---');
-  DATA_TAG_ITEMS.forEach(it => {
-    const s = state[it.id];
-    const hasNote = s.note && s.note.trim();
-    const hasPhotos = (s.photos || []).length > 0;
-    const tagText = hasNote ? s.note.trim() : (hasPhotos ? 'See attached photo' : 'Not recorded');
-    lines.push(`${it.label}: ${tagText}`);
-  });
+  let lines = [];
+  lines.push('Hi team,');
+  lines.push('');
+  lines.push(`Please find below the walkthrough checklist for ${meta.address}, Unit ${meta.unit}.`);
   lines.push('');
 
-  lines.push('Full details and notes are in the attached PDF. Photos are also attached separately below for easy downloading.');
+  if (totalFlags > 0) {
+    lines.push(`${totalFlags} issue${totalFlags > 1 ? 's were' : ' was'} flagged during this walkthrough:`);
+    flaggedLabels.forEach(label => lines.push(`- ${label}`));
+    lines.push('');
+  }
+
+  lines.push(`Inspector: ${meta.inspector}`);
+  lines.push(`Date: ${meta.date}`);
+  lines.push('');
+  lines.push('The full checklist (PDF) and individual photos are attached to this email.');
+  lines.push('');
+  lines.push('Thank you,');
+  lines.push('ClearSky Investment Group');
 
   return { text: lines.join('\n'), flags: totalFlags };
 }
