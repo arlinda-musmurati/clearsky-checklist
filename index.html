@@ -676,6 +676,36 @@
   .email-status.ok { color: var(--pass); }
   .email-status.err { color: var(--flag); }
 
+  /* ── Global toast (always visible, regardless of modal state) ── */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 74px;
+    transform: translateX(-50%) translateY(20px);
+    max-width: 90%;
+    width: 420px;
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.4;
+    padding: 14px 18px;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    z-index: 900;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .toast.ok { border-left: 4px solid var(--pass); }
+  .toast.err { border-left: 4px solid var(--flag); }
+  @media print { .toast { display: none !important; } }
+
   /* ── Signature Section ── */
   .signature-section {
     max-width: 760px;
@@ -861,6 +891,9 @@
 </div>
 
 <!-- Photo Viewer -->
+<!-- Global Toast Notification -->
+<div class="toast" id="toast"></div>
+
 <div class="photo-overlay" id="photoOverlay" onclick="handleOverlayClick(event)">
   <button class="photo-overlay-close" onclick="document.getElementById('photoOverlay').classList.remove('show')">×</button>
   <img id="photoFull" src=""/>
@@ -1451,6 +1484,16 @@ async function capturePdfBase64(meta) {
   }
 }
 
+let toastTimer = null;
+function showToast(message, type) {
+  const toast = document.getElementById('toast');
+  if (!toast) { alert(message); return; }
+  toast.textContent = message;
+  toast.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 7000);
+}
+
 function sendEmailReport() {
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
     alert('Email sending is not set up yet. Paste your Google Apps Script Web App URL into APPS_SCRIPT_URL near the top of this file.');
@@ -1461,6 +1504,7 @@ function sendEmailReport() {
   const statusEl = document.getElementById('emailStatus');
   btns.forEach(b => { b.disabled = true; b.textContent = 'Building PDF…'; });
   if (statusEl) { statusEl.textContent = 'Building PDF…'; statusEl.className = 'email-status show ok'; }
+  showToast('Building PDF…', 'ok');
 
   const meta = getReportMeta();
   const { text, flags } = buildEmailBody(meta);
@@ -1468,8 +1512,10 @@ function sendEmailReport() {
 
   capturePdfBase64(meta)
     .then(pdfBase64 => {
+      console.log('[ClearSky] PDF built, size (base64 chars):', pdfBase64.length);
       btns.forEach(b => { b.textContent = 'Sending…'; });
       if (statusEl) { statusEl.textContent = 'Sending email…'; }
+      showToast('Sending email…', 'ok');
 
       // Abort and show an error instead of hanging forever if the network/script stalls
       const controller = new AbortController();
@@ -1487,24 +1533,35 @@ function sendEmailReport() {
         })
       }).finally(() => clearTimeout(timeoutId));
     })
-    .then(r => r.json())
+    .then(r => {
+      console.log('[ClearSky] Apps Script HTTP status:', r.status);
+      return r.text().then(rawText => {
+        console.log('[ClearSky] Apps Script raw response:', rawText);
+        try {
+          return JSON.parse(rawText);
+        } catch (e) {
+          throw new Error('Server did not return valid JSON (likely an Apps Script auth/deployment issue). Raw response logged to console.');
+        }
+      });
+    })
     .then(res => {
       btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
       if (res && res.success) {
         if (statusEl) { statusEl.textContent = 'Report emailed to maintenance@findrealestate.com ✓'; statusEl.className = 'email-status show ok'; }
-        else alert('Report emailed to maintenance@findrealestate.com');
+        showToast('Report emailed to maintenance@findrealestate.com ✓', 'ok');
       } else {
         throw new Error((res && res.error) || 'Unknown error');
       }
     })
     .catch(err => {
+      console.error('[ClearSky] sendEmailReport failed:', err);
       btns.forEach(b => { b.disabled = false; b.textContent = '✉ Email Maintenance'; });
       const timedOut = err.name === 'AbortError';
       const msg = timedOut
-        ? 'This is taking too long (over 30s) — the request was cancelled. Please try again, or use "Save as PDF" and send it manually.'
-        : 'Could not send the email automatically (' + err.message + '). Please use "Save as PDF" and send it manually.';
+        ? 'This is taking too long (over 30s) — cancelled. Please try again, or use "Save as PDF" and send it manually.'
+        : 'Could not send the email automatically: ' + err.message;
       if (statusEl) { statusEl.textContent = msg; statusEl.className = 'email-status show err'; }
-      else alert(msg);
+      showToast(msg, 'err');
     });
 }
 
